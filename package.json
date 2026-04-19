@@ -1,0 +1,11 @@
+{
+  "name": "pflege-auf-deutsch",
+  "private": true,
+  "version": "0.0.1",
+  "scripts": {
+    "dev": "concurrently \"cd backend && mvn spring-boot:run\" \"cd frontend && npm run dev\""
+  },
+  "devDependencies": {
+    "concurrently": "^9.0.1"
+  }
+}

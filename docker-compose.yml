@@ -1,0 +1,50 @@
+version: "3.9"
+
+services:
+  postgres:
+    image: postgres:16
+    environment:
+      POSTGRES_DB: pflege
+      POSTGRES_USER: pflege
+      POSTGRES_PASSWORD: pflege
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+
+  backend:
+    image: maven:3.9.9-eclipse-temurin-17
+    working_dir: /app/backend
+    command: mvn spring-boot:run
+    environment:
+      APP_DB_URL: jdbc:postgresql://postgres:5432/pflege
+      APP_DB_USERNAME: pflege
+      APP_DB_PASSWORD: pflege
+      APP_JWT_SECRET: change-me-change-me-change-me-change-me
+      APP_CORS_ALLOWED_ORIGINS: http://localhost:5173
+      APP_ADMIN_EMAIL: admin@pflege.local
+      APP_ADMIN_PASSWORD: admin123456
+      GOOGLE_CLIENT_ID: ""
+      GOOGLE_CLIENT_SECRET: ""
+    ports:
+      - "8080:8080"
+    volumes:
+      - ./:/app
+    depends_on:
+      - postgres
+
+  frontend:
+    image: node:22
+    working_dir: /app/frontend
+    command: sh -c "npm install && npm run dev -- --host 0.0.0.0"
+    environment:
+      VITE_API_URL: http://localhost:8080/api/v1
+    ports:
+      - "5173:5173"
+    volumes:
+      - ./:/app
+    depends_on:
+      - backend
+
+volumes:
+  postgres-data:

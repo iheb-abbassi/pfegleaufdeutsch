@@ -1,0 +1,36 @@
+spring:
+  datasource:
+    url: ${APP_DB_URL:jdbc:postgresql://localhost:5432/pflege}
+    username: ${APP_DB_USERNAME:pflege}
+    password: ${APP_DB_PASSWORD:pflege}
+  jpa:
+    hibernate:
+      ddl-auto: update
+    open-in-view: false
+    properties:
+      hibernate:
+        format_sql: true
+  servlet:
+    multipart:
+      max-file-size: 10MB
+      max-request-size: 10MB
+server:
+  port: ${SERVER_PORT:8080}
+
+springdoc:
+  swagger-ui:
+    path: /swagger-ui.html
+
+app:
+  jwt:
+    secret: ${APP_JWT_SECRET:change-me-change-me-change-me-change-me}
+    access-token-minutes: ${APP_JWT_ACCESS_MINUTES:30}
+    refresh-token-days: ${APP_JWT_REFRESH_DAYS:30}
+  cors:
+    allowed-origins: ${APP_CORS_ALLOWED_ORIGINS:http://localhost:5173}
+  admin-seed:
+    email: ${APP_ADMIN_EMAIL:admin@pflege.local}
+    password: ${APP_ADMIN_PASSWORD:admin123456}
+  google:
+    client-id: ${GOOGLE_CLIENT_ID:}
+    client-secret: ${GOOGLE_CLIENT_SECRET:}
