@@ -72,9 +72,12 @@ export function PracticePage() {
   const { accessToken } = useAuth();
   const navigate = useNavigate();
   const [currentIndex, setCurrentIndex] = useState(0);
+  const [activeQuestions, setActiveQuestions] = useState<PracticeQuestion[]>([]);
   const [selected, setSelected] = useState<number[]>([]);
   const [feedback, setFeedback] = useState<{ correct: boolean; correctOptionIds: number[] } | null>(null);
   const [answeredQuestionIds, setAnsweredQuestionIds] = useState<Set<number>>(new Set());
+  const [answerResults, setAnswerResults] = useState<Array<{ questionId: number; correct: boolean; selectedOptionIds: number[]; correctOptionIds: number[] }>>([]);
+  const [completed, setCompleted] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const session = useQuery({
     queryKey: ["practice", domainId],
@@ -82,16 +85,21 @@ export function PracticePage() {
   });
 
   useEffect(() => {
+    setActiveQuestions(session.data?.questions ?? []);
     setCurrentIndex(0);
     setSelected([]);
     setFeedback(null);
     setAnsweredQuestionIds(new Set());
+    setAnswerResults([]);
+    setCompleted(false);
     setIsSubmitting(false);
-  }, [domainId, session.data?.questions.length]);
+  }, [domainId, session.data?.questions]);
 
-  const current = session.data?.questions[currentIndex];
+  const current = activeQuestions[currentIndex];
   const hasQuestions = (session.data?.totalQuestions ?? 0) > 0;
   const answerLocked = current ? feedback !== null || answeredQuestionIds.has(current.id) : false;
+  const correctAnswers = answerResults.filter((result) => result.correct).length;
+  const falseAnswers = answerResults.length - correctAnswers;
 
   async function submit() {
     if (!current || answerLocked || isSubmitting) return;
@@ -103,6 +111,7 @@ export function PracticePage() {
         accessToken ?? undefined
       );
       setAnsweredQuestionIds((previous) => new Set(previous).add(current.id));
+      setAnswerResults((previous) => [...previous, { questionId: current.id, correct: result.correct, selectedOptionIds: selected, correctOptionIds: result.correctOptionIds }]);
       setFeedback(result);
     } finally {
       setIsSubmitting(false);
@@ -112,7 +121,22 @@ export function PracticePage() {
   function nextQuestion() {
     setSelected([]);
     setFeedback(null);
+    if (currentIndex >= activeQuestions.length - 1) {
+      setCompleted(true);
+      return;
+    }
     setCurrentIndex((index) => index + 1);
+  }
+
+  function retryFalseQuestions() {
+    const falseQuestionIds = new Set(answerResults.filter((result) => !result.correct).map((result) => result.questionId));
+    setActiveQuestions((questions) => questions.filter((question) => falseQuestionIds.has(question.id)));
+    setCurrentIndex(0);
+    setSelected([]);
+    setFeedback(null);
+    setAnsweredQuestionIds(new Set());
+    setAnswerResults([]);
+    setCompleted(false);
   }
 
   function saveAndQuit() {
@@ -136,12 +160,37 @@ export function PracticePage() {
 
   return (
     <Shell title={session.data?.domainName ?? "Praxis"}>
-      {session.isLoading ? <p>Fragen werden geladen...</p> : !current ? (
+      {session.isLoading ? <p>Fragen werden geladen...</p> : completed ? (
+        <div className="rounded-3xl bg-white p-6 shadow-sm">
+          <p className="text-sm text-slate-500">{session.data?.domainName}</p>
+          <h2 className="mt-1 text-2xl font-semibold">Bereich abgeschlossen</h2>
+          <div className="mt-6 grid gap-4 sm:grid-cols-3">
+            <div className="rounded-2xl border border-slate-200 p-4">
+              <p className="text-sm text-slate-500">Beantwortet</p>
+              <p className="mt-2 text-3xl font-semibold text-slate-900">{answerResults.length}</p>
+            </div>
+            <div className="rounded-2xl border border-green-200 bg-green-50 p-4">
+              <p className="text-sm text-green-700">Richtig</p>
+              <p className="mt-2 text-3xl font-semibold text-green-800">{correctAnswers}</p>
+            </div>
+            <div className="rounded-2xl border border-red-200 bg-red-50 p-4">
+              <p className="text-sm text-red-700">Falsch</p>
+              <p className="mt-2 text-3xl font-semibold text-red-800">{falseAnswers}</p>
+            </div>
+          </div>
+          <div className="mt-6 flex flex-wrap gap-3">
+            {falseAnswers > 0 ? (
+              <button className="rounded-xl bg-brand-700 px-4 py-2 text-white" onClick={retryFalseQuestions} type="button">Falsche Fragen wiederholen</button>
+            ) : null}
+            <button className="rounded-xl border border-slate-300 px-4 py-2 text-slate-700" onClick={saveAndQuit} type="button">Anderen Bereich waehlen</button>
+          </div>
+        </div>
+      ) : !current ? (
         <p>{hasQuestions ? "Alle Fragen in diesem Bereich sind bereits beherrscht." : "Keine Fragen in diesem Bereich."}</p>
       ) : (
         <div className="rounded-3xl bg-white p-6 shadow-sm">
           <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
-            <p className="text-sm text-slate-500">Frage {currentIndex + 1} / {session.data?.questions.length}</p>
+            <p className="text-sm text-slate-500">Frage {currentIndex + 1} / {activeQuestions.length}</p>
             <button className="rounded-xl border border-slate-300 px-4 py-2 text-sm text-slate-700" onClick={saveAndQuit} type="button">Speichern und beenden</button>
           </div>
           <h2 className="mb-6 text-xl font-semibold">{current.text}</h2>
