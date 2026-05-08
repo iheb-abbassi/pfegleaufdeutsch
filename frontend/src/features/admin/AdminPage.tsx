@@ -1,5 +1,5 @@
 import { zodResolver } from "@hookform/resolvers/zod";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
 import { api, Domain } from "../../api/client";
@@ -36,6 +36,7 @@ type QuestionForm = z.infer<typeof questionSchema>;
 
 export function AdminPage() {
   const { accessToken } = useAuth();
+  const queryClient = useQueryClient();
   const domains = useQuery({
     queryKey: ["admin-domains"],
     queryFn: () => api<Domain[]>("/admin/domains", {}, accessToken ?? undefined)
@@ -74,6 +75,9 @@ export function AdminPage() {
       }, accessToken ?? undefined);
       questionForm.reset({ difficulty: "EASY", correct1: false, correct2: false, correct3: false });
       await questions.refetch();
+      await queryClient.invalidateQueries({ queryKey: ["domains"] });
+      await queryClient.invalidateQueries({ queryKey: ["unlock"] });
+      await queryClient.invalidateQueries({ queryKey: ["practice"] });
     } catch (error) {
       const message = error instanceof Error ? error.message : "Frage konnte nicht gespeichert werden";
       questionForm.setError("root.server", { type: "server", message });

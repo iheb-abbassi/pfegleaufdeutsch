@@ -26,11 +26,12 @@ public class AuthService {
 
     @Transactional
     public AuthDtos.TokenResponse register(AuthDtos.RegisterRequest request) {
-        userRepository.findByEmailIgnoreCase(request.email()).ifPresent(user -> {
+        String email = request.email().trim().toLowerCase();
+        userRepository.findByEmailIgnoreCase(email).ifPresent(user -> {
             throw new ApiException(HttpStatus.CONFLICT, "Email already in use");
         });
         User user = new User();
-        user.setEmail(request.email().trim().toLowerCase());
+        user.setEmail(email);
         user.setPasswordHash(passwordEncoder.encode(request.password()));
         user.setRole(Role.USER);
         user.setAuthProvider(AuthProvider.LOCAL);

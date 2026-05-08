@@ -43,7 +43,7 @@ public class PracticeService {
                 .map(mapper::toPracticeResponse)
                 .toList();
         String domainName = questions.isEmpty() ? "" : questions.get(0).getDomain().getName();
-        return new QuestionDtos.PracticeSessionResponse(domainId, domainName, pending);
+        return new QuestionDtos.PracticeSessionResponse(domainId, domainName, questions.size(), pending);
     }
 
     @Transactional

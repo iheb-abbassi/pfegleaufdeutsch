@@ -10,7 +10,7 @@ public interface QuestionRepository extends JpaRepository<Question, Long> {
     @Query("select distinct q from Question q join fetch q.domain left join fetch q.options where q.active = true")
     List<Question> findAllActiveWithOptions();
 
-    @Query("select distinct q from Question q left join fetch q.options where q.domain.id = :domainId and q.active = true")
+    @Query("select distinct q from Question q join fetch q.domain left join fetch q.options where q.domain.id = :domainId and q.active = true")
     List<Question> findAllActiveByDomainIdWithOptions(Long domainId);
 
     @Query("select distinct q from Question q left join fetch q.options where q.difficulty = :difficulty and q.active = true")

@@ -2,7 +2,7 @@ import { useQuery } from "@tanstack/react-query";
 import { Link, useNavigate, useParams } from "react-router-dom";
 import { api, Domain, ExamAttempt, PracticeQuestion, PracticeSession } from "../../api/client";
 import { useAuth } from "../../components/AuthProvider";
-import { useState, type ReactNode } from "react";
+import { useEffect, useState, type ReactNode } from "react";
 
 function Shell({ title, children }: { title: string; children: ReactNode }) {
   const { user, logout } = useAuth();
@@ -70,23 +70,43 @@ export function DashboardPage() {
 export function PracticePage() {
   const { domainId } = useParams();
   const { accessToken } = useAuth();
+  const navigate = useNavigate();
   const [currentIndex, setCurrentIndex] = useState(0);
   const [selected, setSelected] = useState<number[]>([]);
   const [feedback, setFeedback] = useState<{ correct: boolean; correctOptionIds: number[] } | null>(null);
+  const [answeredQuestionIds, setAnsweredQuestionIds] = useState<Set<number>>(new Set());
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const session = useQuery({
     queryKey: ["practice", domainId],
     queryFn: () => api<PracticeSession>(`/practice/domains/${domainId}/session`, {}, accessToken ?? undefined)
   });
+
+  useEffect(() => {
+    setCurrentIndex(0);
+    setSelected([]);
+    setFeedback(null);
+    setAnsweredQuestionIds(new Set());
+    setIsSubmitting(false);
+  }, [domainId, session.data?.questions.length]);
+
   const current = session.data?.questions[currentIndex];
+  const hasQuestions = (session.data?.totalQuestions ?? 0) > 0;
+  const answerLocked = current ? feedback !== null || answeredQuestionIds.has(current.id) : false;
 
   async function submit() {
-    if (!current) return;
-    const result = await api<{ correct: boolean; correctOptionIds: number[]; mastered: boolean }>(
-      `/practice/questions/${current.id}/answer`,
-      { method: "POST", body: JSON.stringify({ selectedOptionIds: selected }) },
-      accessToken ?? undefined
-    );
-    setFeedback(result);
+    if (!current || answerLocked || isSubmitting) return;
+    setIsSubmitting(true);
+    try {
+      const result = await api<{ correct: boolean; correctOptionIds: number[]; mastered: boolean }>(
+        `/practice/questions/${current.id}/answer`,
+        { method: "POST", body: JSON.stringify({ selectedOptionIds: selected }) },
+        accessToken ?? undefined
+      );
+      setAnsweredQuestionIds((previous) => new Set(previous).add(current.id));
+      setFeedback(result);
+    } finally {
+      setIsSubmitting(false);
+    }
   }
 
   function nextQuestion() {
@@ -95,17 +115,42 @@ export function PracticePage() {
     setCurrentIndex((index) => index + 1);
   }
 
+  function saveAndQuit() {
+    navigate("/");
+  }
+
+  function optionFeedbackClass(optionId: number) {
+    if (!feedback) {
+      return "border-slate-200";
+    }
+    const isCorrectOption = feedback.correctOptionIds.includes(optionId);
+    const isSelectedOption = selected.includes(optionId);
+    if (feedback.correct && isSelectedOption && isCorrectOption) {
+      return "border-green-500 bg-green-50 text-green-800";
+    }
+    if (!feedback.correct && isCorrectOption) {
+      return "border-red-500 bg-red-50 text-red-800";
+    }
+    return "border-slate-200";
+  }
+
   return (
     <Shell title={session.data?.domainName ?? "Praxis"}>
-      {!current ? <p>Keine offenen Fragen in diesem Bereich.</p> : (
+      {session.isLoading ? <p>Fragen werden geladen...</p> : !current ? (
+        <p>{hasQuestions ? "Alle Fragen in diesem Bereich sind bereits beherrscht." : "Keine Fragen in diesem Bereich."}</p>
+      ) : (
         <div className="rounded-3xl bg-white p-6 shadow-sm">
-          <p className="mb-2 text-sm text-slate-500">Frage {currentIndex + 1} / {session.data?.questions.length}</p>
+          <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
+            <p className="text-sm text-slate-500">Frage {currentIndex + 1} / {session.data?.questions.length}</p>
+            <button className="rounded-xl border border-slate-300 px-4 py-2 text-sm text-slate-700" onClick={saveAndQuit} type="button">Speichern und beenden</button>
+          </div>
           <h2 className="mb-6 text-xl font-semibold">{current.text}</h2>
           <div className="space-y-3">
             {current.options.map((option) => (
-              <label className="flex items-center gap-3 rounded-xl border p-3" key={option.id}>
+              <label className={`flex items-center gap-3 rounded-xl border p-3 ${optionFeedbackClass(option.id)}`} key={option.id}>
                 <input
                   checked={selected.includes(option.id)}
+                  disabled={answerLocked}
                   onChange={(event) =>
                     setSelected((prev) => event.target.checked ? [...prev, option.id] : prev.filter((id) => id !== option.id))
                   }
@@ -123,7 +168,9 @@ export function PracticePage() {
               <button className="mt-4 rounded-xl bg-brand-700 px-4 py-2 text-white" onClick={nextQuestion} type="button">Weiter</button>
             </div>
           ) : (
-            <button className="mt-6 rounded-xl bg-brand-700 px-4 py-2 text-white" onClick={submit} type="button">Antwort prüfen</button>
+            <button className="mt-6 rounded-xl bg-brand-700 px-4 py-2 text-white disabled:opacity-50" disabled={answerLocked || isSubmitting} onClick={submit} type="button">
+              {isSubmitting ? "Bitte warten..." : "Antwort prüfen"}
+            </button>
           )}
         </div>
       )}

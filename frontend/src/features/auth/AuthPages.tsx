@@ -23,11 +23,15 @@ function AuthLayout({ title, onSubmit, alternatePath, alternateLabel }: {
   });
 
   const isLogin = title === "Anmelden";
+  const subtitle = isLogin
+    ? "Melde dich mit deinem Konto an."
+    : "Erstelle ein Schuelerkonto, um mit den Lernbereichen zu starten.";
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-brand-50 to-white px-4 py-10">
       <div className="mx-auto max-w-md rounded-3xl bg-white p-8 shadow-xl">
-        <h1 className="mb-6 text-3xl font-semibold text-brand-900">{title}</h1>
+        <h1 className="text-3xl font-semibold text-brand-900">{title}</h1>
+        <p className="mb-6 mt-2 text-sm text-slate-600">{subtitle}</p>
         <form className="space-y-4" onSubmit={handleSubmit(onSubmit)}>
           <div>
             <input autoComplete="email" className="w-full rounded-xl border p-3" placeholder="E-Mail" {...register("email")} />
@@ -88,5 +92,5 @@ export function RegisterPage() {
     navigate("/");
   }
 
-  return <AuthLayout title="Registrieren" onSubmit={onSubmit} alternatePath="/login" alternateLabel="Bereits registriert?" />;
+  return <AuthLayout title="Schuelerkonto erstellen" onSubmit={onSubmit} alternatePath="/login" alternateLabel="Bereits registriert?" />;
 }

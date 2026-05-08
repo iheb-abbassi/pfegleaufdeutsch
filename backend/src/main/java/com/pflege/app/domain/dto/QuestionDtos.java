@@ -32,7 +32,7 @@ public class QuestionDtos {
     public record PracticeQuestionResponse(Long id, String text, String difficulty, List<QuestionOptionResponse> options) {
     }
 
-    public record PracticeSessionResponse(Long domainId, String domainName, List<PracticeQuestionResponse> questions) {
+    public record PracticeSessionResponse(Long domainId, String domainName, long totalQuestions, List<PracticeQuestionResponse> questions) {
     }
 
     public record AnswerRequest(List<Long> selectedOptionIds) {

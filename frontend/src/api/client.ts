@@ -31,6 +31,7 @@ export type PracticeQuestion = {
 export type PracticeSession = {
   domainId: number;
   domainName: string;
+  totalQuestions: number;
   questions: PracticeQuestion[];
 };
 
