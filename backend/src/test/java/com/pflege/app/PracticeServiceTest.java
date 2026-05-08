@@ -84,7 +84,7 @@ class PracticeServiceTest {
         progress.setMastered(true);
 
         when(questionRepository.findAllActiveByDomainIdWithOptions(1L)).thenReturn(List.of(mastered, pending));
-        when(progressRepository.findByUserId(5L)).thenReturn(List.of(progress));
+        when(progressRepository.findByUserIdWithQuestionAndDomain(5L)).thenReturn(List.of(progress));
 
         QuestionDtos.PracticeSessionResponse response = service().startSession(5L, 1L);
 
@@ -102,7 +102,7 @@ class PracticeServiceTest {
         progress.setMastered(false);
 
         when(questionRepository.findAllActiveByDomainIdWithOptions(1L)).thenReturn(List.of(incorrect));
-        when(progressRepository.findByUserId(5L)).thenReturn(List.of(progress));
+        when(progressRepository.findByUserIdWithQuestionAndDomain(5L)).thenReturn(List.of(progress));
 
         QuestionDtos.PracticeSessionResponse response = service().startSession(5L, 1L);
 

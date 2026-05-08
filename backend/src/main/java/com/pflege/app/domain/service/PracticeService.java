@@ -34,7 +34,7 @@ public class PracticeService {
 
     public QuestionDtos.PracticeSessionResponse startSession(Long userId, Long domainId) {
         List<Question> questions = questionRepository.findAllActiveByDomainIdWithOptions(domainId);
-        Set<Long> masteredIds = progressRepository.findByUserId(userId).stream()
+        Set<Long> masteredIds = progressRepository.findByUserIdWithQuestionAndDomain(userId).stream()
                 .filter(UserQuestionProgress::isMastered)
                 .map(progress -> progress.getQuestion().getId())
                 .collect(Collectors.toSet());

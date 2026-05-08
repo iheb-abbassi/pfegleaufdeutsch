@@ -27,7 +27,7 @@ public class DomainService {
     }
 
     public List<DomainDtos.DomainResponse> listForUser(Long userId) {
-        List<UserQuestionProgress> progressList = progressRepository.findByUserId(userId);
+        List<UserQuestionProgress> progressList = progressRepository.findByUserIdWithQuestionAndDomain(userId);
         List<Question> allQuestions = questionRepository.findAllActiveWithOptions();
         return domainRepository.findAll().stream()
                 .map(domain -> {
